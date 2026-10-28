@@ -39,6 +39,8 @@ CONDITION_NEW = "1000"  # eBay's code for "New": brand new, unopened, factory se
 PAGE_SIZE = 200
 MAX_PAGES = 25  # up to 5,000 results per search, far more than eBay ever has for Elves
 LEGO_SETS_CATEGORY = "19006"  # eBay category "LEGO Complete Sets & Packs"
+BATCH_SIZE = 20       # eBay's most listings per batch lookup
+MAX_BATCH_CALLS = 15  # up to 300 listings priced per update
 
 # Two broad searches cover the whole theme, then each listing is matched to its set here.
 # This uses about 10 to 20 eBay calls per update instead of 80+, so it can share
@@ -65,6 +67,10 @@ class AuthError(Exception):
 
 class TemporaryError(Exception):
     """eBay or the network had a hiccup. Worth trying again next hour."""
+
+
+class NotAllowed(TemporaryError):
+    """eBay says these keys may not use this particular feature."""
 
 
 # ===== text helpers =====
@@ -326,6 +332,8 @@ class Ebay:
                 last = f"eBay answered {r.status_code}"
                 self.sleep(3 * (attempt + 1))
                 continue
+            if r.status_code == 403:
+                raise NotAllowed(f"eBay answered 403: {r.text[:300]}")
             raise TemporaryError(f"eBay answered {r.status_code}: {r.text[:300]}")
         raise TemporaryError(last)
 
@@ -333,6 +341,11 @@ class Ebay:
         """Full details of one listing. With a ship-to ZIP this includes the real
         shipping price to that ZIP, which search results leave out."""
         return self.get(ITEM_URL + quote(item_id, safe=""))
+
+    def get_items(self, item_ids):
+        """Full details of up to 20 listings in one call (eBay's batch lookup)."""
+        data = self.get(ITEM_URL.rstrip("/"), {"item_ids": ",".join(item_ids)})
+        return data.get("items") or []
 
     def search(self, search_params, settings):
         options = []
@@ -420,6 +433,38 @@ def fill_shipping(ebay, by_set, settings):
     todo = [l for l in listings if l["shipping"] is None and (cache.get(l["id"]) or {}).get("checked") != today]
     todo.sort(key=lambda l: l["price"])
     looked = 0
+
+    # First choice: eBay's batch lookup, 20 listings per call, so every listing gets priced.
+    batch_ok = True
+    for start in range(0, min(len(todo), BATCH_SIZE * MAX_BATCH_CALLS), BATCH_SIZE):
+        chunk = todo[start:start + BATCH_SIZE]
+        try:
+            details = ebay.get_items([l["id"] for l in chunk])
+        except NotAllowed as e:
+            print(f"eBay does not allow batch lookups for these keys, using single lookups ({e})")
+            batch_ok = False
+            break
+        except TemporaryError as e:
+            print(f"Batch shipping lookup paused this hour ({e})")
+            break
+        by_id = {d.get("itemId"): d for d in details}
+        if start == 0 and len(chunk) >= 5 and chunk[0]["id"] in by_id:
+            # Spot check: price the first one the single way too, to prove both agree.
+            try:
+                single = shipping_cost(ebay.get_item(chunk[0]["id"]))
+                print(f"Batch check: batch says {shipping_cost(by_id[chunk[0]['id']])}, single says {single}")
+            except TemporaryError:
+                pass
+        for l in chunk:
+            looked += 1
+            cost = shipping_cost(by_id[l["id"]]) if l["id"] in by_id else None
+            cache[l["id"]] = {"shipping": cost, "checked": today}
+            if cost is not None:
+                l["shipping"] = cost
+    if batch_ok:
+        todo = []  # batch handled them (or eBay hiccuped; try again next hour)
+
+    # Fallback: one listing per call, a few per update.
     for l in todo[:max(0, limit)]:
         try:
             detail = ebay.get_item(l["id"])
