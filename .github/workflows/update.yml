@@ -6,11 +6,14 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+  issues:
+    types: [opened, edited, closed, reopened, deleted]
 
 permissions:
   contents: write
   pages: write
   id-token: write
+  issues: read
 
 concurrency:
   group: pages
@@ -18,6 +21,8 @@ concurrency:
 
 jobs:
   update:
+    # Purchases are GitHub issues. Only issues opened by the owner start an update.
+    if: github.event_name != 'issues' || github.event.issue.user.login == github.repository_owner
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
@@ -40,6 +45,7 @@ jobs:
           EBAY_CLIENT_ID: ${{ secrets.EBAY_CLIENT_ID }}
           EBAY_CLIENT_SECRET: ${{ secrets.EBAY_CLIENT_SECRET }}
           SHIP_TO_ZIP: ${{ vars.SHIP_TO_ZIP }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: python updater/update.py
 
       - name: Keep the hourly schedule switched on (one tiny save per day)
