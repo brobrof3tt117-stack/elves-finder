@@ -46,8 +46,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add updater/last-run-day.txt updater/set-images.json
-          git commit -m "Daily keep-alive and set pictures" || echo "Already saved today"
+          git add updater/last-run-day.txt updater/set-images.json updater/shipping-cache.json
+          git commit -m "Save set pictures and shipping prices" || echo "Already saved today"
           git push || echo "Skipped keep-alive push this time"
 
       - name: Prepare website
