@@ -8,6 +8,9 @@
   "show_auctions": true,
   "us_sellers_only": true,
 
+  "_shipping_help": "Listings with calculated shipping are looked up one at a time to get the real price to your ZIP. Each lookup uses one of eBay's 5,000 daily calls, so only this many happen per update (cheapest first). Each listing is only looked up once.",
+  "max_shipping_lookups_per_update": 10,
+
   "_hide_words_help": "Any listing whose title contains one of these words or phrases is hidden. They usually mean the set is opened, used, incomplete, fake, or a bundle.",
   "hide_words": [
     "used", "pre owned", "preowned", "opened", "open box", "box opened",
