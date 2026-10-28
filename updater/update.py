@@ -167,11 +167,11 @@ def money(obj):
 
 
 def shipping_cost(item):
-    """Cheapest fixed shipping cost, 0.0 for free, or None if it is calculated at checkout."""
+    """Cheapest shipping cost, 0.0 for free, or None if eBay gave no price.
+    When a ship-to ZIP is set, eBay prices calculated shipping for that ZIP,
+    so those prices are used too."""
     best = None
     for opt in item.get("shippingOptions") or []:
-        if opt.get("shippingCostType") == "CALCULATED":
-            continue
         value, _ = money(opt.get("shippingCost"))
         if value is not None and (best is None or value < best):
             best = value
@@ -251,13 +251,21 @@ def keep_item(item, set_info, known_numbers, settings):
 # ===== eBay calls =====
 
 class Ebay:
-    def __init__(self, client_id, client_secret, session=None, sleep=time.sleep):
+    def __init__(self, client_id, client_secret, session=None, sleep=time.sleep, zip_code=""):
+        self.zip_code = zip_code if zip_code.isdigit() and len(zip_code) == 5 else ""
         self.client_id = client_id
         self.client_secret = client_secret
         self.session = session or requests.Session()
         self.sleep = sleep
         self.token = None
         self.calls = 0
+
+    def headers(self):
+        h = {"Authorization": f"Bearer {self.token}", "X-EBAY-C-MARKETPLACE-ID": MARKETPLACE}
+        if self.zip_code:
+            # Tells eBay where the buyer is, so shipping is priced for that ZIP.
+            h["X-EBAY-C-ENDUSERCTX"] = f"contextualLocation=country%3DUS%2Czip%3D{self.zip_code}"
+        return h
 
     def refresh_token(self):
         auth = base64.b64encode(f"{self.client_id}:{self.client_secret}".encode()).decode()
@@ -297,10 +305,7 @@ class Ebay:
                 r = self.session.get(
                     url,
                     params=params,
-                    headers={
-                        "Authorization": f"Bearer {self.token}",
-                        "X-EBAY-C-MARKETPLACE-ID": MARKETPLACE,
-                    },
+                    headers=self.headers(),
                     timeout=TIMEOUT,
                 )
             except requests.RequestException as e:
@@ -447,6 +452,9 @@ def now_iso():
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+SHIP_TO_ZIP = os.environ.get("SHIP_TO_ZIP", "").strip()
+
+
 def write_output(status, sets_out, settings, message="", images=None):
     OUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -457,6 +465,7 @@ def write_output(status, sets_out, settings, message="", images=None):
             "min_seller_positive_percent": settings["min_seller_positive_percent"],
             "min_seller_ratings": settings["min_seller_ratings"],
             "us_sellers_only": settings["us_sellers_only"],
+            "shipping_for_zip": bool(SHIP_TO_ZIP.isdigit() and len(SHIP_TO_ZIP) == 5),
         },
         "images": images or {},
         "sets": sets_out,
@@ -485,7 +494,7 @@ def run(client_id, client_secret, session=None, sleep=time.sleep, fandom_session
         write_output("needs_keys", {}, settings, "eBay keys have not been added yet.", images)
         return 0
 
-    ebay = Ebay(client_id, client_secret, session=session, sleep=sleep)
+    ebay = Ebay(client_id, client_secret, session=session, sleep=sleep, zip_code=SHIP_TO_ZIP)
     try:
         ebay.refresh_token()
     except AuthError as e:
