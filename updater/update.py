@@ -18,6 +18,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from urllib.parse import quote
+
 import requests
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -26,9 +28,11 @@ OUT_FILE = ROOT / "site" / "data" / "listings.json"
 SETTINGS_FILE = ROOT / "updater" / "settings.json"
 HEARTBEAT_FILE = ROOT / "updater" / "last-run-day.txt"
 IMAGES_FILE = ROOT / "updater" / "set-images.json"
+SHIPPING_FILE = ROOT / "updater" / "shipping-cache.json"
 
 TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token"
 SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search"
+ITEM_URL = "https://api.ebay.com/buy/browse/v1/item/"
 SCOPE = "https://api.ebay.com/oauth/api_scope"
 MARKETPLACE = "EBAY_US"
 CONDITION_NEW = "1000"  # eBay's code for "New": brand new, unopened, factory sealed
@@ -40,7 +44,7 @@ LEGO_SETS_CATEGORY = "19006"  # eBay category "LEGO Complete Sets & Packs"
 # This uses about 10 to 20 eBay calls per update instead of 80+, so it can share
 # a keyset with other tools without running out of the 5,000 daily calls.
 BROAD_SEARCHES = [
-    {"q": "lego elves"},
+    {"q": "lego elves", "category_ids": LEGO_SETS_CATEGORY},
     {"category_ids": LEGO_SETS_CATEGORY, "aspect_filter": "categoryId:" + LEGO_SETS_CATEGORY + ",LEGO Theme:{Elves}"},
 ]
 TIMEOUT = 30
@@ -325,6 +329,11 @@ class Ebay:
             raise TemporaryError(f"eBay answered {r.status_code}: {r.text[:300]}")
         raise TemporaryError(last)
 
+    def get_item(self, item_id):
+        """Full details of one listing. With a ship-to ZIP this includes the real
+        shipping price to that ZIP, which search results leave out."""
+        return self.get(ITEM_URL + quote(item_id, safe=""))
+
     def search(self, search_params, settings):
         options = []
         if settings["show_buy_it_now"]:
@@ -382,6 +391,56 @@ def fetch_all(ebay, sets, known_numbers, settings):
     for listings in by_set.values():
         listings.sort(key=lambda x: x["price"] + (x["shipping"] or 0))
     return by_set, worked
+
+
+# ===== exact shipping for listings with calculated shipping =====
+
+def load_shipping_cache():
+    try:
+        data = json.loads(SHIPPING_FILE.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def fill_shipping(ebay, by_set, settings):
+    """Search results have no price for calculated shipping, so look those listings up
+    one by one (cheapest first, a few per update) and remember the answer.
+    A listing's shipping to the same ZIP does not change, so each costs one lookup ever.
+    Returns how many lookups were made."""
+    cache = load_shipping_cache()
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    limit = int(settings.get("max_shipping_lookups_per_update", 10))
+    listings = [l for ls in by_set.values() for l in ls]
+    current_ids = {l["id"] for l in listings}
+    for l in listings:
+        hit = cache.get(l["id"])
+        if l["shipping"] is None and hit and hit.get("shipping") is not None:
+            l["shipping"] = hit["shipping"]
+    todo = [l for l in listings if l["shipping"] is None and (cache.get(l["id"]) or {}).get("checked") != today]
+    todo.sort(key=lambda l: l["price"])
+    looked = 0
+    for l in todo[:max(0, limit)]:
+        try:
+            detail = ebay.get_item(l["id"])
+        except TemporaryError as e:
+            print(f"Shipping lookup paused this hour ({e})")
+            break
+        looked += 1
+        cost = shipping_cost(detail)
+        cache[l["id"]] = {"shipping": cost, "checked": today}
+        if cost is not None:
+            l["shipping"] = cost
+    cache = {k: v for k, v in cache.items() if k in current_ids}  # forget sold or ended listings
+    try:
+        SHIPPING_FILE.write_text(json.dumps(cache, indent=0, sort_keys=True) + "\n", encoding="utf-8")
+    except OSError as e:
+        print(f"Could not save shipping-cache.json ({e})")
+    for ls in by_set.values():
+        ls.sort(key=lambda x: x["price"] + (x["shipping"] or 0))
+    missing = sum(1 for l in listings if l["shipping"] is None)
+    print(f"Shipping: looked up {looked} listing(s) this update, {missing} still waiting for a price.")
+    return looked
 
 
 # ===== set pictures from Fandom =====
@@ -515,6 +574,12 @@ def run(client_id, client_secret, session=None, sleep=time.sleep, fandom_session
     if worked == 0:
         print("Every search failed, so the last good results stay online.")
         return 1
+
+    if ebay.zip_code:
+        try:
+            fill_shipping(ebay, by_set, settings)
+        except AuthError:
+            pass  # the listings are still good without exact shipping
 
     sets_out = {n: {"error": False, "listings": l} for n, l in by_set.items()}
     total = sum(len(l) for l in by_set.values())
