@@ -33,7 +33,16 @@ SCOPE = "https://api.ebay.com/oauth/api_scope"
 MARKETPLACE = "EBAY_US"
 CONDITION_NEW = "1000"  # eBay's code for "New": brand new, unopened, factory sealed
 PAGE_SIZE = 200
-MAX_PAGES = 3
+MAX_PAGES = 25  # up to 5,000 results per search, far more than eBay ever has for Elves
+LEGO_SETS_CATEGORY = "19006"  # eBay category "LEGO Complete Sets & Packs"
+
+# Two broad searches cover the whole theme, then each listing is matched to its set here.
+# This uses about 10 to 20 eBay calls per update instead of 80+, so it can share
+# a keyset with other tools without running out of the 5,000 daily calls.
+BROAD_SEARCHES = [
+    {"q": "lego elves"},
+    {"category_ids": LEGO_SETS_CATEGORY, "aspect_filter": "categoryId:" + LEGO_SETS_CATEGORY + ",LEGO Theme:{Elves}"},
+]
 TIMEOUT = 30
 
 # Official set pictures come from the LEGO wiki on Fandom (Brickipedia).
@@ -243,6 +252,7 @@ class Ebay:
         self.session = session or requests.Session()
         self.sleep = sleep
         self.token = None
+        self.calls = 0
 
     def refresh_token(self):
         auth = base64.b64encode(f"{self.client_id}:{self.client_secret}".encode()).decode()
@@ -277,6 +287,7 @@ class Ebay:
         refreshed = False
         last = "unknown problem"
         for attempt in range(4):
+            self.calls += 1
             try:
                 r = self.session.get(
                     url,
@@ -304,7 +315,7 @@ class Ebay:
             raise TemporaryError(f"eBay answered {r.status_code}: {r.text[:300]}")
         raise TemporaryError(last)
 
-    def search(self, query, settings):
+    def search(self, search_params, settings):
         options = []
         if settings["show_buy_it_now"]:
             options.append("FIXED_PRICE")
@@ -313,7 +324,8 @@ class Ebay:
         filters = [f"conditionIds:{{{CONDITION_NEW}}}", f"buyingOptions:{{{'|'.join(options)}}}"]
         if settings["us_sellers_only"]:
             filters += ["itemLocationCountry:US", "deliveryCountry:US"]
-        params = {"q": query, "limit": str(PAGE_SIZE), "filter": ",".join(filters)}
+        params = dict(search_params)
+        params.update({"limit": str(PAGE_SIZE), "filter": ",".join(filters)})
         items = []
         data = self.get(SEARCH_URL, params)
         pages = 1
@@ -327,27 +339,39 @@ class Ebay:
         return items
 
 
-def queries_for(set_info):
-    plain_name = normalize(set_info["name"])
-    if set_info["kind"] == "Magazine gift":
-        return [f"lego elves {plain_name}"]
-    return [f"lego {set_info['number']}", f"lego elves {plain_name}"]
+def match_set(title, sets, known_numbers):
+    """Which one set is this listing about? None if it matches zero sets or more than one."""
+    hits = [s for s in sets if title_is_this_set(title, s, known_numbers)]
+    return hits[0] if len(hits) == 1 else None
 
 
-def fetch_set(ebay, set_info, known_numbers, settings):
+def fetch_all(ebay, sets, known_numbers, settings):
+    """Run the broad searches and sort every good listing into its set.
+    Returns (listings by set number, number of searches that worked)."""
+    by_set = {s["number"]: [] for s in sets}
     seen = set()
-    listings = []
-    for q in queries_for(set_info):
-        for item in ebay.search(q, settings):
+    worked = 0
+    for search_params in BROAD_SEARCHES:
+        try:
+            items = ebay.search(search_params, settings)
+        except TemporaryError as e:
+            print(f"One of the searches failed this hour ({e})")
+            continue
+        worked += 1
+        for item in items:
             item_id = item.get("itemId")
             if not item_id or item_id in seen:
                 continue
             seen.add(item_id)
+            set_info = match_set(item.get("title", ""), sets, known_numbers)
+            if not set_info:
+                continue
             listing = keep_item(item, set_info, known_numbers, settings)
             if listing:
-                listings.append(listing)
-    listings.sort(key=lambda x: x["price"] + (x["shipping"] or 0))
-    return listings
+                by_set[set_info["number"]].append(listing)
+    for listings in by_set.values():
+        listings.sort(key=lambda x: x["price"] + (x["shipping"] or 0))
+    return by_set, worked
 
 
 # ===== set pictures from Fandom =====
@@ -467,33 +491,23 @@ def run(client_id, client_secret, session=None, sleep=time.sleep, fandom_session
         print(f"eBay is having trouble right now, keeping the last good results online. Details: {e}")
         return 1
 
-    sets_out = {}
-    failures = 0
-    total = 0
-    for s in sets:
-        try:
-            listings = fetch_set(ebay, s, known_numbers, settings)
-            sets_out[s["number"]] = {"error": False, "listings": listings}
-            total += len(listings)
-            print(f"{s['number']} {s['name']}: {len(listings)} sealed listing(s)")
-        except AuthError as e:
-            print(f"PROBLEM: {e}")
-            write_output("bad_keys", {}, settings, "eBay did not accept the keys.", images)
-            return 0
-        except TemporaryError as e:
-            failures += 1
-            sets_out[s["number"]] = {"error": True, "listings": []}
-            print(f"{s['number']} {s['name']}: could not check this hour ({e})")
-            if failures >= 3 and failures == len(sets_out):
-                print("The first 3 sets all failed, so eBay looks down. Stopping early.")
-                break
+    try:
+        by_set, worked = fetch_all(ebay, sets, known_numbers, settings)
+    except AuthError as e:
+        print(f"PROBLEM: {e}")
+        write_output("bad_keys", {}, settings, "eBay did not accept the keys.", images)
+        return 0
 
-    if failures == len(sets_out):
+    if worked == 0:
         print("Every search failed, so the last good results stay online.")
         return 1
 
+    sets_out = {n: {"error": False, "listings": l} for n, l in by_set.items()}
+    total = sum(len(l) for l in by_set.values())
+    for s in sets:
+        print(f"{s['number']} {s['name']}: {len(by_set[s['number']])} sealed listing(s)")
     write_output("ok", sets_out, settings, images=images)
-    print(f"Done. {total} sealed listing(s) across {len(sets)} sets. {failures} set(s) could not be checked.")
+    print(f"Done. {total} sealed listing(s) across {len(sets)} sets. eBay calls used this update: {ebay.calls}.")
     return 0
 
 

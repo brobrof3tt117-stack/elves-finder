@@ -8,7 +8,7 @@ It takes about 30 minutes, plus waiting up to one business day for eBay to appro
 
 If you already made one for another project (like a deal scanner), you can skip the account signup and approval wait. Sign in at developer.ebay.com and go straight to Step 2.
 
-**Make a new keyset for this site anyway.** eBay gives each keyset 5,000 searches per day. This site uses about 1,900 per day, and a scanner that checks every minute can use 4,000 or more by itself. If both share one keyset, they will run out partway through the day and both will stop working. In Step 2, give the new keyset its own name (like `ElvesFinder`) so it gets its own 5,000.
+**You can reuse the same keys.** eBay gives each keyset 5,000 searches per day and only gives one Production keyset per account. This site is built to be light: about 16 searches per update, roughly 400 per day. That leaves plenty of room for another tool on the same keys. If your other tool already uses close to 5,000 a day by itself, see "Fixing problems" below.
 
 ## Step 1: Make a free eBay developer account
 
@@ -19,7 +19,7 @@ If you already made one for another project (like a deal scanner), you can skip 
 ## Step 2: Get your two eBay keys
 
 1. Sign in at developer.ebay.com, click your name (top right), then **Application Keysets**.
-2. Type a name like `ElvesFinder` and click **Create a keyset** under **Production** (not Sandbox). If you already have a keyset for something else, look for the option to add or create another application first, then do this.
+2. If you already have a Production keyset (from another project), use those same keys and skip to number 4. Otherwise, type a name like `ElvesFinder` and click **Create a keyset** under **Production** (not Sandbox).
 3. eBay asks about "Marketplace account deletion notifications" (or shows "Your keyset is currently disabled"). Click the **exemption** link, turn on the **Not persisting eBay data** option, pick "I do not persist eBay data", and give the reason "Read-only listing search, no user data stored." That is true: this app never saves seller names or buyer info. Go back to Application Keysets and make sure the new keyset no longer says disabled.
 4. You will now see your Production keys. You need two of them:
    - **App ID (Client ID)**
@@ -125,6 +125,7 @@ Keep the quote marks and commas exactly as they are when you edit. If the site s
 - **Site says "eBay did not accept the keys":** you may have copied the Sandbox keys or an extra space. Copy the **Production** App ID and Cert ID again and update both secrets.
 - **Red X in the Actions tab:** click it, then click the red step to read the message. If it says "Get Pages site failed", redo Step 5. If eBay was down, the next hourly run usually fixes itself and the site keeps showing the last good results.
 - **Site says listings are more than 4 hours old:** go to the Actions tab. If you see a yellow banner saying workflows are disabled, click **Enable**.
+- **Listings stop updating partway through the day while another tool shares the keys:** the two together hit eBay's 5,000 daily limit. Open `.github/workflows/update.yml`, change `"17 * * * *"` to `"17 */3 * * *"` (every 3 hours) and commit.
 - **Your site link shows a 404 page:** wait 5 minutes after the first green check, then refresh.
 
 ## Good to know
@@ -134,4 +135,4 @@ Keep the quote marks and commas exactly as they are when you edit. If the site s
 - **The magazine gift packs** (Enki, Flamy, Miku, Jynx, Mr. Spry, Hidee) are rarely listed with their set number, so the finder matches them by name. They will show fewer results and occasionally an odd one.
 - **Set pictures** are the official LEGO box photos from the LEGO Wiki on Fandom. The site looks each one up once and remembers it. The 6 magazine gift packs have no wiki picture, so they show an eBay photo instead (or their set number if nothing is for sale).
 - **Keychains** are not included because LEGO files them as merchandise, not sets.
-- **Costs:** eBay's API, GitHub, and the website are all free for this. The finder uses about 1,900 of eBay's 5,000 free searches per day.
+- **Costs:** eBay's API, GitHub, and the website are all free for this. The finder uses roughly 400 of eBay's 5,000 free searches per day.
