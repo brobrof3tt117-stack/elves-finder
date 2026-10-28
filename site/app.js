@@ -89,7 +89,8 @@
       el("foot").textContent =
         "Shows only listings marked New (factory sealed) from US sellers with at least " +
         rules.min_seller_positive_percent + "% positive feedback and " + rules.min_seller_ratings +
-        " ratings. Titles that mention opened, used, incomplete or bundled items are hidden. Always read the listing before you buy. Set pictures come from the LEGO Wiki on Fandom.";
+        " ratings. Titles that mention opened, used, incomplete or bundled items are hidden. Always read the listing before you buy. Set pictures come from the LEGO Wiki on Fandom." +
+        (rules.shipping_for_zip ? " Shipping prices are what eBay quotes for delivery to your ZIP code." : "");
     }
   }
 
