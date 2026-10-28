@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sealed Elves Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fredoka:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="home">
+<header class="top">
+  <div class="wrap">
+    <h1>Sealed Elves Finder</h1>
+    <p>Every LEGO Elves set from 2015 to 2018, with the factory sealed copies for sale on eBay right now from trusted US sellers. Click a set to see them.</p>
+    <span class="updated" id="updated">Loading listings...</span>
+    <div class="elements" aria-hidden="true">
+      <span style="background:#8a6fc7"></span><span style="background:#3b8fc2"></span><span style="background:#e2763b"></span><span style="background:#6f9e3b"></span>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+  <div id="banner"></div>
+  <div class="tools">
+    <label class="sr" for="q" style="position:absolute;left:-9999px">Search sets</label>
+    <input class="search" id="q" type="search" placeholder="Search by name or number, like 41075 or dragon" autocomplete="off">
+    <label class="check"><input type="checkbox" id="onlyForSale"> Only show sets for sale</label>
+  </div>
+  <div id="years"></div>
+</main>
+<footer class="wrap foot" id="foot"></footer>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+{
+  "_read_me": "You can change the numbers and word lists below right on GitHub. Click the pencil icon, edit, then click Commit changes. The next hourly update uses the new settings.",
+
+  "min_seller_positive_percent": 95,
+  "min_seller_ratings": 50,
+
+  "show_buy_it_now": true,
+  "show_auctions": true,
+  "us_sellers_only": true,
+
+  "_hide_words_help": "Any listing whose title contains one of these words or phrases is hidden. They usually mean the set is opened, used, incomplete, fake, or a bundle.",
+  "hide_words": [
+    "used", "pre owned", "preowned", "opened", "open box", "box opened",
+    "unsealed", "resealed", "re sealed", "retaped", "re taped",
+    "no box", "without box", "box only", "empty box", "no instructions",
+    "incomplete", "missing", "partial", "built", "assembled", "displayed",
+    "parts only", "pieces only", "bricks only", "bags only", "sealed bags", "bags sealed", "inner bags",
+    "instructions only", "manual only", "booklet only",
+    "minifigure only", "minifigures only", "minifig only", "minifigs only",
+    "figure only", "figures only", "mini doll only", "mini dolls only",
+    "no minifigures", "no minifigs", "no figures", "no mini dolls", "no minidolls",
+    "lot", "bundle", "job lot",
+    "custom", "moc", "compatible", "replica", "knockoff", "knock off", "lepin", "bootleg", "fake", "not lego"
+  ],
+
+  "_maybe_hide_words_help": "These words usually mean a loose figure or just the paperwork, so the listing is hidden UNLESS the title also says sealed, NISB, MISB or new in box.",
+  "maybe_hide_words": [
+    "minifig", "minifigs", "minifigure", "minifigures", "mini figure", "mini figures",
+    "figurine", "mini doll", "mini dolls", "minidoll", "minidolls",
+    "instructions", "instruction", "manual", "booklet", "sticker", "stickers"
+  ],
+  "sealed_words": [
+    "sealed", "nisb", "misb", "nib", "mib", "new in box", "new in sealed box", "unopened"
+  ],
+
+  "_box_warning_help": "Listings that mention these words still show up (the set is still sealed) but get a yellow 'box damage mentioned' tag.",
+  "box_warning_words": [
+    "damaged", "damage", "crushed", "dented", "dent", "dents", "torn", "tear", "tears",
+    "creased", "crease", "creases", "worn", "wear", "shelf wear", "box wear", "imperfect", "bad box", "rough box"
+  ],
+
+  "_ok_phrases_help": "These phrases are ignored before checking the hide list, so 'never opened' does not count as 'opened'.",
+  "ok_phrases": [
+    "never opened", "never been opened", "not opened", "not been opened",
+    "never used", "not used", "never built", "not built", "never assembled", "not assembled"
+  ]
+}

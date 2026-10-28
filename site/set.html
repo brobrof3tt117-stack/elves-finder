@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sealed Elves Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fredoka:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="set">
+<header class="top">
+  <div class="wrap">
+    <a href="index.html" style="text-decoration:none"><h1>Sealed Elves Finder</h1></a>
+    <span class="updated" id="updated">Loading listings...</span>
+    <div class="elements" aria-hidden="true">
+      <span style="background:#8a6fc7"></span><span style="background:#3b8fc2"></span><span style="background:#e2763b"></span><span style="background:#6f9e3b"></span>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+  <a class="back" href="index.html">Back to all sets</a>
+  <div id="banner"></div>
+  <section class="hero" id="hero"></section>
+  <div class="filters" id="filters" hidden>
+    <div class="seg" role="group" aria-label="Listing type">
+      <button type="button" data-show="all" aria-pressed="true">All</button>
+      <button type="button" data-show="Buy It Now" aria-pressed="false">Buy It Now</button>
+      <button type="button" data-show="Auction" aria-pressed="false">Auctions</button>
+    </div>
+    <label>Sort by
+      <select class="sort" id="sort">
+        <option value="low">Lowest total price</option>
+        <option value="high">Highest total price</option>
+        <option value="ending">Auctions ending soonest</option>
+        <option value="newest">Newest listings</option>
+      </select>
+    </label>
+  </div>
+  <div class="list" id="list"></div>
+</main>
+<footer class="wrap foot" id="foot"></footer>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+{
+  "theme": "LEGO Elves",
+  "sets": [
+    {
+      "number": "30259",
+      "name": "Azari's Magic Fire",
+      "year": 2015,
+      "kind": "Polybag",
+      "retail": 5.99
+    },
+    {
+      "number": "41071",
+      "name": "Aira's Creative Workshop",
+      "year": 2015,
+      "kind": "Set",
+      "retail": 9.99
+    },
+    {
+      "number": "41072",
+      "name": "Naida's Spa Secret",
+      "year": 2015,
+      "kind": "Set",
+      "retail": 19.99
+    },
+    {
+      "number": "41073",
+      "name": "Naida's Epic Adventure Ship",
+      "year": 2015,
+      "kind": "Set",
+      "retail": 29.99
+    },
+    {
+      "number": "41074",
+      "name": "Azari and the Magical Bakery",
+      "year": 2015,
+      "kind": "Set",
+      "retail": 29.99
+    },
+    {
+      "number": "41075",
+      "name": "The Elves' Treetop Hideaway",
+      "year": 2015,
+      "kind": "Set",
+      "retail": 49.99
+    },
+    {
+      "number": "41076",
+      "name": "Farran and the Crystal Hollow",
+      "year": 2015,
+      "kind": "Set",
+      "retail": 14.99
+    },
+    {
+      "number": "41077",
+      "name": "Aira's Pegasus Sleigh",
+      "year": 2015,
+      "kind": "Set",
+      "retail": 39.99
+    },
+    {
+      "number": "41078",
+      "name": "Skyra's Mysterious Sky Castle",
+      "year": 2015,
+      "kind": "Set",
+      "retail": 79.99
+    },
+    {
+      "number": "241501",
+      "name": "Enki the Panther",
+      "year": 2015,
+      "kind": "Magazine gift",
+      "retail": null,
+      "match_words": [
+        "enki",
+        "panther"
+      ]
+    },
+    {
+      "number": "241502",
+      "name": "Flamy the Fox",
+      "year": 2015,
+      "kind": "Magazine gift",
+      "retail": null,
+      "match_words": [
+        "flamy",
+        "fox"
+      ]
+    },
+    {
+      "number": "30375",
+      "name": "Sira's Adventurous Airglider",
+      "year": 2016,
+      "kind": "Polybag",
+      "retail": null
+    },
+    {
+      "number": "41171",
+      "name": "Emily Jones & the Baby Wind Dragon",
+      "year": 2016,
+      "kind": "Set",
+      "retail": 9.99
+    },
+    {
+      "number": "41172",
+      "name": "The Water Dragon Adventure",
+      "year": 2016,
+      "kind": "Set",
+      "retail": 19.99
+    },
+    {
+      "number": "41173",
+      "name": "Elvendale School of Dragons",
+      "year": 2016,
+      "kind": "Set",
+      "retail": 19.99
+    },
+    {
+      "number": "41174",
+      "name": "The Starlight Inn",
+      "year": 2016,
+      "kind": "Set",
+      "retail": 29.99
+    },
+    {
+      "number": "41175",
+      "name": "Fire Dragon's Lava Cave",
+      "year": 2016,
+      "kind": "Set",
+      "retail": 39.99
+    },
+    {
+      "number": "41176",
+      "name": "The Secret Market Place",
+      "year": 2016,
+      "kind": "Set",
+      "retail": 59.99
+    },
+    {
+      "number": "41177",
+      "name": "The Precious Crystal Mine",
+      "year": 2016,
+      "kind": "Set",
+      "retail": 29.99
+    },
+    {
+      "number": "41178",
+      "name": "The Dragon Sanctuary",
+      "year": 2016,
+      "kind": "Set",
+      "retail": 49.99
+    },
+    {
+      "number": "41179",
+      "name": "Queen Dragon's Rescue",
+      "year": 2016,
+      "kind": "Set",
+      "retail": 69.99
+    },
+    {
+      "number": "41180",
+      "name": "Ragana's Magic Shadow Castle",
+      "year": 2016,
+      "kind": "Set",
+      "retail": 99.99
+    },
+    {
+      "number": "241601",
+      "name": "Miku the Dragon",
+      "year": 2016,
+      "kind": "Magazine gift",
+      "retail": null,
+      "match_words": [
+        "miku"
+      ]
+    },
+    {
+      "number": "241602",
+      "name": "Jynx the Witch's Cat",
+      "year": 2016,
+      "kind": "Magazine gift",
+      "retail": null,
+      "match_words": [
+        "jynx"
+      ]
+    },
+    {
+      "number": "41181",
+      "name": "Naida's Gondola & the Goblin Thief",
+      "year": 2017,
+      "kind": "Set",
+      "retail": 9.99
+    },
+    {
+      "number": "41182",
+      "name": "The Capture of Sophie Jones",
+      "year": 2017,
+      "kind": "Set",
+      "retail": 19.99
+    },
+    {
+      "number": "41183",
+      "name": "The Goblin King's Evil Dragon",
+      "year": 2017,
+      "kind": "Set",
+      "retail": 29.99
+    },
+    {
+      "number": "41184",
+      "name": "Aira's Airship & the Amulet Chase",
+      "year": 2017,
+      "kind": "Set",
+      "retail": 39.99
+    },
+    {
+      "number": "41185",
+      "name": "Magic Rescue from the Goblin Village",
+      "year": 2017,
+      "kind": "Set",
+      "retail": 59.99
+    },
+    {
+      "number": "41186",
+      "name": "Azari & the Goblin Forest Escape",
+      "year": 2017,
+      "kind": "Set",
+      "retail": 19.99
+    },
+    {
+      "number": "41187",
+      "name": "Rosalyn's Healing Hideout",
+      "year": 2017,
+      "kind": "Set",
+      "retail": 49.99
+    },
+    {
+      "number": "41188",
+      "name": "Breakout from the Goblin King's Fortress",
+      "year": 2017,
+      "kind": "Set",
+      "retail": 69.99
+    },
+    {
+      "number": "241701",
+      "name": "Mr. Spry and His Lemonade Stand",
+      "year": 2017,
+      "kind": "Magazine gift",
+      "retail": null,
+      "match_words": [
+        "spry",
+        "lemonade"
+      ]
+    },
+    {
+      "number": "241702",
+      "name": "Hidee the Chameleon",
+      "year": 2017,
+      "kind": "Magazine gift",
+      "retail": null,
+      "match_words": [
+        "hidee",
+        "chameleon"
+      ]
+    },
+    {
+      "number": "41190",
+      "name": "Emily Jones & the Eagle Getaway",
+      "year": 2018,
+      "kind": "Set",
+      "retail": 14.99
+    },
+    {
+      "number": "41191",
+      "name": "Naida & the Water Turtle Ambush",
+      "year": 2018,
+      "kind": "Set",
+      "retail": 19.99
+    },
+    {
+      "number": "41192",
+      "name": "Azari & the Fire Lion Capture",
+      "year": 2018,
+      "kind": "Set",
+      "retail": 29.99
+    },
+    {
+      "number": "41193",
+      "name": "Aira & the Song of the Wind Dragon",
+      "year": 2018,
+      "kind": "Set",
+      "retail": 39.99
+    },
+    {
+      "number": "41194",
+      "name": "Noctura's Tower & the Earth Fox Rescue",
+      "year": 2018,
+      "kind": "Set",
+      "retail": 59.99
+    },
+    {
+      "number": "41195",
+      "name": "Emily & Noctura's Showdown",
+      "year": 2018,
+      "kind": "Set",
+      "retail": 49.99
+    },
+    {
+      "number": "41196",
+      "name": "The Elvenstar Tree Bat Attack",
+      "year": 2018,
+      "kind": "Set",
+      "retail": 79.99
+    }
+  ]
+}
