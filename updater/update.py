@@ -131,9 +131,14 @@ def title_is_this_set(title, set_info, known_numbers):
     number = set_info["number"]
     if (tokset & known_numbers) - {number}:
         return False  # mentions a different Elves set too, so it is a bundle or the wrong set
-    if number in tokset:
-        return True
+    if any(t.isdigit() and 5 <= len(t) <= 6 and t != number for t in toks):
+        return False  # mentions another LEGO set number (like 60066), so it is a bundle
     stems = {stem(t) for t in toks}
+    if number in tokset:
+        # Loose parts often say only the number ("Baby Miku ELVES 41077"), so the
+        # title must also share at least one word with the set's name.
+        words = name_match_words(set_info)
+        return not words or any(w in stems for w in words)
     if "elve" not in stems and "elf" not in stems:
         return False
     words = name_match_words(set_info)
