@@ -1,0 +1,7 @@
+{
+  "_read_me": "Budget settings. The budget starts at starting_amount and adds weekly_amount every Friday, starting on first_weekly_add. Unspent money carries over. Purchases (added on the Add a purchase tab) are subtracted.",
+  "starting_amount": 50,
+  "weekly_amount": 50,
+  "first_weekly_add": "2026-11-06",
+  "time_zone": "America/New_York"
+}

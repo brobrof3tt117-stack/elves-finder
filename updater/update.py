@@ -29,6 +29,7 @@ SETTINGS_FILE = ROOT / "updater" / "settings.json"
 HEARTBEAT_FILE = ROOT / "updater" / "last-run-day.txt"
 IMAGES_FILE = ROOT / "updater" / "set-images.json"
 SHIPPING_FILE = ROOT / "updater" / "shipping-cache.json"
+PURCHASES_FILE = ROOT / "site" / "data" / "purchases.json"
 
 TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token"
 SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search"
@@ -488,6 +489,69 @@ def fill_shipping(ebay, by_set, settings):
     return looked
 
 
+# ===== purchases (saved as GitHub issues from the Add a purchase tab) =====
+
+def parse_purchase(issue, known_numbers):
+    """Read 'set: 41075 / paid: 64.99 / date: 2026-10-28' from an issue. None if it is not a purchase."""
+    if "pull_request" in issue or not str(issue.get("title", "")).startswith("Purchase"):
+        return None
+    fields = {}
+    for line in str(issue.get("body") or "").splitlines():
+        if ":" in line:
+            k, v = line.split(":", 1)
+            fields[k.strip().lower()] = v.strip()
+    number = fields.get("set", "")
+    try:
+        paid = round(float(fields.get("paid", "").replace("$", "").replace(",", "")), 2)
+    except ValueError:
+        return None
+    if number not in known_numbers or not (0 <= paid <= 100000):
+        return None
+    date = fields.get("date", "")
+    if not (len(date) == 10 and date[4] == "-" and date[7] == "-" and date.replace("-", "").isdigit()):
+        date = str(issue.get("created_at", ""))[:10]
+    return {"set": number, "paid": paid, "date": date, "issue": issue.get("number"), "url": issue.get("html_url")}
+
+
+def update_purchases(known_numbers, session=None):
+    """Collect purchases from open GitHub issues made by the repository owner.
+    Issues from anyone else are ignored, so strangers cannot change her budget."""
+    token = os.environ.get("GITHUB_TOKEN", "").strip()
+    repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    if not token or "/" not in repo:
+        print("Purchases: not running on GitHub, keeping the existing purchases file.")
+        return
+    owner = repo.split("/")[0]
+    session = session or requests.Session()
+    purchases, page = [], 1
+    try:
+        while page <= 10:
+            r = session.get(
+                f"https://api.github.com/repos/{repo}/issues",
+                params={"state": "open", "creator": owner, "per_page": "100", "page": str(page)},
+                headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
+                timeout=TIMEOUT,
+            )
+            if r.status_code != 200:
+                raise TemporaryError(f"GitHub answered {r.status_code}")
+            batch = r.json()
+            for issue in batch:
+                if str((issue.get("user") or {}).get("login", "")).lower() != owner.lower():
+                    continue
+                p = parse_purchase(issue, known_numbers)
+                if p:
+                    purchases.append(p)
+            if len(batch) < 100:
+                break
+            page += 1
+        payload = {"ok": True, "repo": repo, "updated": now_iso(), "purchases": purchases}
+        print(f"Purchases: {len(purchases)} found.")
+    except (requests.RequestException, TemporaryError, ValueError) as e:
+        print(f"Purchases could not be read this time ({e})")
+        payload = {"ok": False, "repo": repo, "updated": now_iso(), "purchases": []}
+    PURCHASES_FILE.write_text(json.dumps(payload, indent=1, ensure_ascii=False), encoding="utf-8")
+
+
 # ===== set pictures from Fandom =====
 
 def fandom_picture(session, number):
@@ -586,11 +650,12 @@ def write_heartbeat():
     HEARTBEAT_FILE.write_text(today + "\n", encoding="utf-8")
 
 
-def run(client_id, client_secret, session=None, sleep=time.sleep, fandom_session=None):
+def run(client_id, client_secret, session=None, sleep=time.sleep, fandom_session=None, github_session=None):
     settings = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
     sets = json.loads(SETS_FILE.read_text(encoding="utf-8"))["sets"]
     known_numbers = {s["number"] for s in sets}
     write_heartbeat()
+    update_purchases(known_numbers, github_session)
     images = update_images(sets, fandom_session)
 
     if not client_id or not client_secret:

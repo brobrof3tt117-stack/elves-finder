@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Add a purchase | Sealed Elves Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fredoka:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="add">
+<header class="top">
+  <div class="wrap">
+    <a href="index.html" style="text-decoration:none"><h1>Sealed Elves Finder</h1></a>
+    <span class="updated" id="updated">Loading listings...</span>
+    <nav class="tabs" aria-label="Pages">
+      <a href="index.html">Sets</a>
+      <a href="add.html" aria-current="page">Add a purchase</a>
+    </nav>
+    <div class="budget" id="budget" aria-live="polite"></div>
+    <div class="elements" aria-hidden="true">
+      <span style="background:#8a6fc7"></span><span style="background:#3b8fc2"></span><span style="background:#e2763b"></span><span style="background:#6f9e3b"></span>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+  <div id="banner"></div>
+  <section class="add-card">
+    <h2>Add a purchase</h2>
+    <p class="hint">Record a set she bought. It turns grey on the set list and its price comes out of her budget.</p>
+    <form id="addForm" novalidate>
+      <label for="pSet">Which set</label>
+      <select id="pSet" class="field"></select>
+      <label for="pPaid">Total paid, including shipping</label>
+      <input id="pPaid" class="field" type="text" inputmode="decimal" placeholder="64.99" autocomplete="off">
+      <label for="pDate">Date bought</label>
+      <input id="pDate" class="field" type="date">
+      <button type="submit" class="buy">Save purchase</button>
+      <p class="form-msg" id="addMsg" role="status"></p>
+    </form>
+    <p class="hint">Saving opens GitHub with the purchase already filled in. You need to be signed in to GitHub, then click Create. To undo a purchase, click Remove below and close it on GitHub.</p>
+  </section>
+  <section class="add-card">
+    <h2>Purchases so far</h2>
+    <div id="pList"></div>
+  </section>
+</main>
+<footer class="wrap foot" id="foot"></footer>
+<script src="app.js"></script>
+</body>
+</html>

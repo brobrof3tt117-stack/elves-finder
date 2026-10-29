@@ -109,9 +109,70 @@
     return official || sum.image;
   }
 
+  /* Budget */
+
+  function todayIn(zone) {
+    // Today's date (YYYY-MM-DD) in the given time zone, so Friday means Friday in Eastern time.
+    try {
+      return new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    } catch (e) {
+      var d = new Date();
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    }
+  }
+
+  function dayNumber(ymd) {
+    var p = ymd.split("-");
+    return Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000;
+  }
+
+  function niceDate(ymd) {
+    var p = ymd.split("-");
+    return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])).toLocaleDateString("en-US",
+      { timeZone: "UTC", weekday: "long", month: "short", day: "numeric" });
+  }
+
+  function computeBudget(cfg, purchases) {
+    var today = todayIn(cfg.time_zone || "America/New_York");
+    var first = cfg.first_weekly_add;
+    var weeks = 0;
+    var diff = dayNumber(today) - dayNumber(first);
+    if (diff >= 0) weeks = Math.floor(diff / 7) + 1;
+    var added = Number(cfg.starting_amount) + weeks * Number(cfg.weekly_amount);
+    var spent = 0;
+    purchases.forEach(function (p) { spent += Number(p.paid) || 0; });
+    var nextDay = dayNumber(first) + weeks * 7;
+    var next = new Date(nextDay * 86400000).toISOString().slice(0, 10);
+    return {
+      added: added, spent: Math.round(spent * 100) / 100,
+      left: Math.round((added - spent) * 100) / 100,
+      weekly: Number(cfg.weekly_amount), next: next
+    };
+  }
+
+  function ownedMap(purchases) {
+    var m = {};
+    purchases.forEach(function (p) { (m[p.set] = m[p.set] || []).push(p); });
+    return m;
+  }
+
+  function showBudget(b, purchasesOk) {
+    var box = el("budget");
+    if (!box) return;
+    var pct = b.added > 0 ? Math.max(0, Math.min(100, (b.spent / b.added) * 100)) : 0;
+    box.innerHTML =
+      '<div class="budget-top"><span class="budget-label">Budget left</span>' +
+      '<span class="budget-left' + (b.left < 0 ? " over" : "") + '">' + dollars(b.left) + "</span></div>" +
+      '<div class="budget-bar" role="img" aria-label="' + dollars(b.spent) + " spent of " + dollars(b.added) + '">' +
+      '<span style="width:' + pct.toFixed(1) + '%"></span></div>' +
+      '<div class="budget-sub">' + dollars(b.spent) + " spent of " + dollars(b.added) + " so far. Next +" +
+      dollars(b.weekly) + " on " + niceDate(b.next) + ".</div>" +
+      (purchasesOk ? "" : '<div class="budget-sub warn">Purchases could not be loaded in the last update, so this may be too high.</div>');
+  }
+
   /* Home page */
 
-  function renderHome(sets, data) {
+  function renderHome(sets, data, budget, owned) {
     var q = el("q");
     var only = el("onlyForSale");
 
@@ -147,7 +208,15 @@
       else sale = '<span class="sale">' + sum.items.length + " for sale, from " + dollars(sum.lowest) + "</span>";
       var orig = s.retail ? '<span class="orig">Original price ' + dollars(s.retail) + "</span>" : '<span class="orig">Free gift, no original price</span>';
       var kind = s.kind !== "Set" ? '<span class="kind">' + esc(s.kind) + "</span>" : "";
-      return '<a class="tile" href="set.html?set=' + encodeURIComponent(s.number) + '">' +
+      var cls = "tile", badge = "";
+      if (owned[s.number]) {
+        cls += " owned";
+        badge = '<span class="badge owned-badge">She owns this</span>';
+      } else if (sum.lowest !== null && sum.lowest <= budget.left) {
+        cls += " afford";
+        badge = '<span class="badge afford-badge">She can afford this</span>';
+      }
+      return '<a class="' + cls + '" href="set.html?set=' + encodeURIComponent(s.number) + '">' + badge +
         '<div class="thumb" data-num="' + esc(s.number) + '">' + thumbHtml(boxPicture(data, s, sum), s.name, s.number) + "</div>" +
         '<div class="body"><span class="num">Set ' + esc(s.number) + "</span>" +
         "<h3>" + esc(s.name) + "</h3>" + kind + sale + orig + "</div></a>";
@@ -160,7 +229,7 @@
 
   /* Set page */
 
-  function renderSet(sets, data) {
+  function renderSet(sets, data, budget, owned) {
     var number = new URLSearchParams(location.search).get("set");
     var s = null;
     sets.forEach(function (x) { if (x.number === number) s = x; });
@@ -181,7 +250,7 @@
       "<li><span>Original price</span><b>" + (s.retail ? dollars(s.retail) : "Free gift") + "</b></li>" +
       "<li><span>Sealed for sale</span><b>" + sum.items.length + "</b></li>" +
       (sum.lowest !== null ? "<li><span>Lowest total</span><b>" + dollars(sum.lowest) + "</b></li>" : "") +
-      "</ul></div>";
+      "</ul>" + ownedNote(owned[s.number]) + "</div>";
 
     var show = "all";
     var sortSel = el("sort");
@@ -216,7 +285,7 @@
         el("list").innerHTML = '<p class="empty">None of that type right now. Pick "All" to see every listing.</p>';
         return;
       }
-      el("list").innerHTML = items.map(function (it) { return itemHtml(it, s); }).join("");
+      el("list").innerHTML = items.map(function (it) { return itemHtml(it, s, budget, !!owned[s.number]); }).join("");
     }
 
     el("filters").hidden = sum.items.length === 0;
@@ -233,8 +302,17 @@
     draw();
   }
 
-  function itemHtml(it, s) {
+  function ownedNote(list) {
+    if (!list) return "";
+    return '<p class="owned-note">She already owns this set. ' + list.map(function (p) {
+      return "Bought " + (p.date ? "on " + esc(p.date) + " " : "") + "for " + dollars(p.paid) + ".";
+    }).join(" ") + "</p>";
+  }
+
+  function itemHtml(it, s, budget, isOwned) {
     var tags = [];
+    var fits = !isOwned && it.shipping !== null && it.shipping !== undefined && total(it) <= budget.left;
+    if (fits) tags.push('<span class="tag fits">Within budget</span>');
     if (it.kind === "Auction") {
       var left = it.ends ? timeLeft(it.ends) : null;
       tags.push('<span class="tag auction">Auction, ' + it.bids + (it.bids === 1 ? " bid" : " bids") + (left ? ", " + left : "") + "</span>");
@@ -261,7 +339,7 @@
       ? '<div class="seller">Seller: ' + esc(it.seller_percent) + "% positive from " + Number(it.seller_ratings).toLocaleString("en-US") + " ratings</div>"
       : "";
 
-    return '<article class="item">' +
+    return '<article class="item' + (fits ? " fits" : "") + '">' +
       '<div class="thumb" data-num="' + esc(s.number) + '">' + thumbHtml(it.image, it.title, s.number) + "</div>" +
       "<div><h3>" + esc(it.title) + "</h3>" +
       '<div class="tags">' + tags.join("") + "</div>" + seller + "</div>" +
@@ -269,6 +347,51 @@
       '<div class="ship">' + ship + "</div>" + vs +
       '<a class="buy" href="' + esc(safeUrl(it.url)) + '" target="_blank" rel="noopener noreferrer">View on eBay</a></div>' +
       "</article>";
+  }
+
+  /* Add a purchase page */
+
+  function repoName(purchasesData) {
+    if (purchasesData.repo && /^[\w.-]+\/[\w.-]+$/.test(purchasesData.repo)) return purchasesData.repo;
+    var owner = location.hostname.split(".")[0];
+    var repo = location.pathname.split("/").filter(Boolean)[0] || "";
+    return owner + "/" + repo;
+  }
+
+  function renderAdd(sets, data, budget, owned, purchasesData) {
+    var sel = el("pSet");
+    sel.innerHTML = '<option value="">Pick a set</option>' + sets.map(function (s) {
+      return '<option value="' + esc(s.number) + '">' + esc(s.number + " " + s.name) + (owned[s.number] ? " (owned)" : "") + "</option>";
+    }).join("");
+    el("pDate").value = todayIn("America/New_York");
+    var repo = repoName(purchasesData);
+
+    el("addForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var msg = el("addMsg");
+      var num = sel.value;
+      var paid = parseFloat(String(el("pPaid").value).replace(/[$,\s]/g, ""));
+      var date = el("pDate").value;
+      if (!num) { msg.className = "form-msg bad"; msg.textContent = "Pick which set she bought."; return; }
+      if (!(paid >= 0) || paid > 100000) { msg.className = "form-msg bad"; msg.textContent = "Type the total paid, like 64.99."; return; }
+      var s = sets.filter(function (x) { return x.number === num; })[0];
+      var title = "Purchase: " + s.number + " " + s.name + ", " + dollars(paid);
+      var body = "set: " + s.number + "\npaid: " + paid.toFixed(2) + "\ndate: " + date +
+        "\n\nAdded from the Sealed Elves Finder. Close this issue to remove the purchase.";
+      var url = "https://github.com/" + repo + "/issues/new?title=" + encodeURIComponent(title) + "&body=" + encodeURIComponent(body);
+      window.open(url, "_blank", "noopener");
+      msg.className = "form-msg ok";
+      msg.innerHTML = "GitHub opened in a new tab with the purchase filled in. Click <b>Create</b> there to save it. The budget and set colors update in about 2 minutes.";
+    });
+
+    var list = purchasesData.purchases || [];
+    el("pList").innerHTML = list.length === 0
+      ? '<p class="empty">No purchases yet.</p>'
+      : '<ul class="plist">' + list.slice().sort(function (a, b) { return String(b.date).localeCompare(String(a.date)); }).map(function (p) {
+          var s = sets.filter(function (x) { return x.number === p.set; })[0];
+          return "<li><span>" + esc(p.date || "") + "</span><b>" + esc(p.set + " " + (s ? s.name : "")) + "</b><span>" + dollars(p.paid) + "</span>" +
+            (safeUrl(p.url) ? '<a href="' + esc(safeUrl(p.url)) + '" target="_blank" rel="noopener noreferrer">Remove</a>' : "") + "</li>";
+        }).join("") + "</ul>";
   }
 
   /* If a photo cannot load, show the set number instead of a broken image */
@@ -285,15 +408,26 @@
 
   /* Start */
 
-  Promise.all([loadJson("data/sets.json"), loadJson("data/listings.json")])
+  Promise.all([
+    loadJson("data/sets.json"), loadJson("data/listings.json"),
+    loadJson("data/budget.json"),
+    loadJson("data/purchases.json").catch(function () { return { ok: false, purchases: [] }; })
+  ])
     .then(function (res) {
       var sets = res[0].sets;
       var data = res[1];
       data.sets = data.sets || {};
       data.images = data.images || {};
+      var purchasesData = res[3] || {};
+      var purchases = (purchasesData.purchases || []).filter(function (p) { return p && p.set && Number(p.paid) >= 0; });
+      var budget = computeBudget(res[2], purchases);
+      var owned = ownedMap(purchases);
       showStatus(data);
-      if (document.body.getAttribute("data-page") === "set") renderSet(sets, data);
-      else renderHome(sets, data);
+      showBudget(budget, purchasesData.ok !== false);
+      var page = document.body.getAttribute("data-page");
+      if (page === "set") renderSet(sets, data, budget, owned);
+      else if (page === "add") renderAdd(sets, data, budget, owned, purchasesData);
+      else renderHome(sets, data, budget, owned);
     })
     .catch(function (err) {
       el("banner").innerHTML = '<div class="banner bad"><strong>The page could not load its data.</strong>Refresh the page. If this keeps happening, see "Fixing problems" in the setup guide.</div>';
