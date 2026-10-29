@@ -211,10 +211,10 @@
       var cls = "tile", badge = "";
       if (owned[s.number]) {
         cls += " owned";
-        badge = '<span class="badge owned-badge">She owns this</span>';
+        badge = '<span class="badge owned-badge">You own this</span>';
       } else if (sum.lowest !== null && sum.lowest <= budget.left) {
         cls += " afford";
-        badge = '<span class="badge afford-badge">She can afford this</span>';
+        badge = '<span class="badge afford-badge">You can afford this</span>';
       }
       return '<a class="' + cls + '" href="set.html?set=' + encodeURIComponent(s.number) + '">' + badge +
         '<div class="thumb" data-num="' + esc(s.number) + '">' + thumbHtml(boxPicture(data, s, sum), s.name, s.number) + "</div>" +
@@ -304,7 +304,7 @@
 
   function ownedNote(list) {
     if (!list) return "";
-    return '<p class="owned-note">She already owns this set. ' + list.map(function (p) {
+    return '<p class="owned-note">You already own this set. ' + list.map(function (p) {
       return "Bought " + (p.date ? "on " + esc(p.date) + " " : "") + "for " + dollars(p.paid) + ".";
     }).join(" ") + "</p>";
   }
@@ -372,7 +372,7 @@
       var num = sel.value;
       var paid = parseFloat(String(el("pPaid").value).replace(/[$,\s]/g, ""));
       var date = el("pDate").value;
-      if (!num) { msg.className = "form-msg bad"; msg.textContent = "Pick which set she bought."; return; }
+      if (!num) { msg.className = "form-msg bad"; msg.textContent = "Pick which set you bought."; return; }
       if (!(paid >= 0) || paid > 100000) { msg.className = "form-msg bad"; msg.textContent = "Type the total paid, like 64.99."; return; }
       var s = sets.filter(function (x) { return x.number === num; })[0];
       var title = "Purchase: " + s.number + " " + s.name + ", " + dollars(paid);
