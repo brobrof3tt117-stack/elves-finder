@@ -1,0 +1,48 @@
+name: Hourly timer
+
+# Backup for GitHub's unreliable hourly schedule.
+# Each run waits until 17 minutes past the next hour, starts the update,
+# then starts the next timer. If the chain ever breaks, the schedule
+# below restarts it within a few hours.
+
+on:
+  workflow_dispatch:
+    inputs:
+      now:
+        description: "Start the update right away instead of waiting"
+        type: boolean
+        default: false
+  schedule:
+    - cron: "47 */4 * * *"
+
+permissions:
+  actions: write
+
+concurrency:
+  group: timer
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Wait until the next update time
+        if: ${{ inputs.now != true }}
+        run: |
+          now=$(date -u +%s)
+          target=$(( now / 3600 * 3600 + 17 * 60 ))
+          while [ $(( target - now )) -lt 600 ]; do target=$(( target + 3600 )); done
+          wait=$(( target - now ))
+          echo "Waiting $(( wait / 60 )) minutes, until $(date -u -d @$target +%H:%M) UTC"
+          sleep "$wait"
+
+      - name: Start the update
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run update.yml --repo "${{ github.repository }}" --ref main
+
+      - name: Start the next timer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run timer.yml --repo "${{ github.repository }}" --ref main
