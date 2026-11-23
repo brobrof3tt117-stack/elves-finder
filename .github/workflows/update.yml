@@ -1,8 +1,8 @@
 name: Update eBay listings
 
 on:
-  schedule:
-    - cron: "17 * * * *"
+  # The hourly start comes from timer.yml (it has its own backup schedule),
+  # so there is no schedule here. That avoids two updates every hour.
   workflow_dispatch:
   push:
     branches: [main]
